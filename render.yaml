@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: worldwar-inf
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      # OpenFront's bundled nginx listens on port 80.
+      - key: PORT
+        value: "80"
+
+      # Keep this small for Render's free instance.
+      - key: NUM_WORKERS
+        value: "1"
+
+      # The upstream local-development environment is appropriate for a
+      # small self-hosted/private game server and avoids production-only infra.
+      - key: GAME_ENV
+        value: dev
+      - key: DOMAIN
+        value: localhost
+
+      # Cloudflare's documented Turnstile test site key, also used by the
+      # upstream OpenFront local-development script.
+      - key: TURNSTILE_SITE_KEY
+        value: 1x00000000000000000000AA
+
+      # Keep required server secrets out of Git.
+      - key: API_KEY
+        generateValue: true
+      - key: ADMIN_BOT_API_KEY
+        generateValue: true
+
+      # IMPORTANT for Render/self-hosting: the game simulation runs in an
+      # inline blob Web Worker. Giving it an absolute CDN base lets it fetch
+      # /_assets map data from this same Render service without modifying
+      # OpenFront gameplay code.
+      - key: CDN_BASE
+        fromService:
+          type: web
+          name: worldwar-inf
+          envVarKey: RENDER_EXTERNAL_URL
+
+      # Preserve the deployed revision in OpenFront's bootstrap/commit display.
+      - key: GIT_COMMIT
+        fromService:
+          type: web
+          name: worldwar-inf
+          envVarKey: RENDER_GIT_COMMIT
