@@ -1,0 +1,31 @@
+name: Format final respawn test
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.head_commit.message == 'Temporarily format final respawn test'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prettier --write tests/RespawnState.test.ts
+      - name: Commit formatted test and remove helper workflow
+        run: |
+          rm .github/workflows/format-final-respawn.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Format final respawn regression test"
+          git push origin HEAD:main
