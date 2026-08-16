@@ -12,6 +12,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { findMinimumBy } from "../Util";
+import { isRespawnProtected } from "./RespawnState";
 import { ShellExecution } from "./ShellExecution";
 
 export class WarshipExecution implements Execution {
@@ -256,6 +257,10 @@ export class WarshipExecution implements Execution {
     const config = mg.config();
     const owner = this.warship.owner();
 
+    if (isRespawnProtected(mg, owner)) {
+      return undefined;
+    }
+
     const ships = mg.nearbyUnits(
       this.warship.tile(),
       config.warshipTargettingRange(),
@@ -276,6 +281,7 @@ export class WarshipExecution implements Execution {
       if (
         unit === this.warship ||
         unit.owner() === owner ||
+        isRespawnProtected(mg, unit.owner()) ||
         !owner.canAttackPlayer(unit.owner(), true) ||
         this.alreadySentShell.has(unit) ||
         (unit.type() === UnitType.Warship &&

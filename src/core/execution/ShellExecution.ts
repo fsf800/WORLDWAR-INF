@@ -3,6 +3,7 @@ import { TileRef } from "../game/GameMap";
 import { PathFinding } from "../pathfinding/PathFinder";
 import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { isRespawnProtected } from "./RespawnState";
 
 export class ShellExecution implements Execution {
   private active = true;
@@ -33,6 +34,8 @@ export class ShellExecution implements Execution {
     }
     if (
       !this.target.isActive() ||
+      isRespawnProtected(this.mg, this._owner) ||
+      isRespawnProtected(this.mg, this.target.owner()) ||
       this.target.owner() === this.shell.owner() ||
       (this.destroyAtTick !== -1 && this.mg.ticks() >= this.destroyAtTick)
     ) {

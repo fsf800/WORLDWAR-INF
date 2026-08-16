@@ -16,6 +16,7 @@ import { ParabolaUniversalPathFinder } from "../pathfinding/PathFinder.Parabola"
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { NukeType } from "../StatsSchemas";
+import { isRespawnProtected } from "./RespawnState";
 import { listNukeBreakAlliance } from "./Util";
 
 const SPRITE_RADIUS = 16;
@@ -50,6 +51,39 @@ export class NukeExecution implements Execution {
 
   public target(): Player | TerraNullius {
     return this.mg.owner(this.dst);
+  }
+
+  private violatesRespawnProtection(): boolean {
+    if (isRespawnProtected(this.mg, this.player)) {
+      return true;
+    }
+
+    // Block even near-border targeting: the maximum blast circle may not
+    // overlap any country protected by the five-minute respawn peace.
+    const magnitude = this.mg.config().nukeMagnitudes(this.nukeType);
+    const outer2 = magnitude.outer * magnitude.outer;
+    const cx = this.mg.x(this.dst);
+    const cy = this.mg.y(this.dst);
+    const x0 = Math.max(0, cx - magnitude.outer);
+    const y0 = Math.max(0, cy - magnitude.outer);
+    const x1 = Math.min(this.mg.width() - 1, cx + magnitude.outer);
+    const y1 = Math.min(this.mg.height() - 1, cy + magnitude.outer);
+
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const tile = this.mg.ref(x, y);
+        if (this.mg.euclideanDistSquared(this.dst, tile) > outer2) continue;
+        const owner = this.mg.owner(tile);
+        if (
+          owner.isPlayer() &&
+          owner !== this.player &&
+          isRespawnProtected(this.mg, owner)
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private tilesToDestroy(): Set<TileRef> {
@@ -183,6 +217,10 @@ export class NukeExecution implements Execution {
 
   tick(ticks: number): void {
     if (this.nuke === null) {
+      if (this.violatesRespawnProtection()) {
+        this.active = false;
+        return;
+      }
       const spawn = this.player.canBuild(this.nukeType, this.dst);
       if (spawn === false) {
         console.warn(`cannot build Nuke`);
