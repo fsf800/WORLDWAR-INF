@@ -21,6 +21,7 @@ import { NationExecution } from "./NationExecution";
 import { NoOpExecution } from "./NoOpExecution";
 import { PauseExecution } from "./PauseExecution";
 import { QuickChatExecution } from "./QuickChatExecution";
+import { RespawnExecution } from "./RespawnExecution";
 import { RetreatExecution } from "./RetreatExecution";
 import { SpawnExecution } from "./SpawnExecution";
 import { TargetPlayerExecution } from "./TargetPlayerExecution";
@@ -89,6 +90,12 @@ export class Executor {
       case "breakAlliance":
         return new BreakAllianceExecution(player, intent.recipient);
       case "targetPlayer":
+        // Respawn deliberately reuses the already-validated targetPlayer wire
+        // intent with self as the target. A living player still follows the
+        // normal target-player path, so existing protocol compatibility remains.
+        if (intent.target === player.id() && !player.isAlive()) {
+          return new RespawnExecution(player);
+        }
         return new TargetPlayerExecution(player, intent.target);
       case "emoji":
         return new EmojiExecution(player, intent.recipient, intent.emoji);
