@@ -1,4 +1,5 @@
 import {
+  allianceHasActiveRespawnLock,
   canBreakRespawnAlliance,
   captureRespawnSnapshot,
   getRespawnSnapshot,
@@ -66,10 +67,12 @@ describe("RespawnState", () => {
     expect(RESPAWN_ALLIANCE_LOCK_TICKS).toBe(6000);
     lockRespawnAllianceForBreaker(game, alliance, donor);
 
+    expect(allianceHasActiveRespawnLock(game, alliance)).toBe(true);
     expect(canBreakRespawnAlliance(game, alliance, donor)).toBe(false);
     expect(canBreakRespawnAlliance(game, alliance, respawned)).toBe(true);
 
     tick = 250 + RESPAWN_ALLIANCE_LOCK_TICKS;
+    expect(allianceHasActiveRespawnLock(game, alliance)).toBe(false);
     expect(canBreakRespawnAlliance(game, alliance, donor)).toBe(true);
   });
 });
