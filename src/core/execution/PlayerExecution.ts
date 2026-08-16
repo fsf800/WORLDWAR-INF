@@ -15,6 +15,10 @@ import {
   TileTraversalScratch,
 } from "../game/TileTraversalScratch";
 import { calculateBoundingBox, getMode, inscribed, simpleHash } from "../Util";
+import {
+  allianceHasActiveRespawnLock,
+  captureRespawnSnapshot,
+} from "./RespawnState";
 
 export class PlayerExecution implements Execution {
   private readonly ticksPerClusterCalc = 20;
@@ -83,6 +87,9 @@ export class PlayerExecution implements Execution {
       return;
     }
 
+    // Keep the latest stable state for deterministic in-game respawning.
+    captureRespawnSnapshot(this.mg, this.player);
+
     const troopInc = this.config.troopIncreaseRate(this.player);
     this.player.addTroops(troopInc);
     const goldFromWorkers = this.config.goldAdditionRate(this.player);
@@ -92,7 +99,10 @@ export class PlayerExecution implements Execution {
     this.mg.stats().goldWork(this.player, goldFromWorkers);
 
     for (const alliance of this.player.alliances()) {
-      if (alliance.expiresAt() <= this.mg.ticks()) {
+      if (
+        alliance.expiresAt() <= this.mg.ticks() &&
+        !allianceHasActiveRespawnLock(this.mg, alliance)
+      ) {
         alliance.expire();
       }
     }
