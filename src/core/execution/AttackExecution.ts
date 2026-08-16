@@ -14,6 +14,7 @@ import {
 import { GameMap, TileRef } from "../game/GameMap";
 import { PseudoRandom } from "../PseudoRandom";
 import { assertNever } from "../Util";
+import { isRespawnProtected } from "./RespawnState";
 import { FlatBinaryHeap } from "./utils/FlatBinaryHeap"; // adjust path if needed
 
 const malusForRetreat = 25;
@@ -87,6 +88,15 @@ export class AttackExecution implements Execution {
         console.warn(
           `${this._owner.displayName()} cannot attack ${targetPlayer.displayName()} because they are friendly (allied or same team)`,
         );
+        this.active = false;
+        return;
+      }
+      // Respawn peace is symmetric: the respawned country cannot start a war
+      // and other countries cannot attack it for five minutes.
+      if (
+        isRespawnProtected(this.mg, this._owner) ||
+        isRespawnProtected(this.mg, targetPlayer)
+      ) {
         this.active = false;
         return;
       }
@@ -251,6 +261,15 @@ export class AttackExecution implements Execution {
 
     if (!this.attack.isActive()) {
       this.active = false;
+      return;
+    }
+
+    if (
+      targetPlayer &&
+      (isRespawnProtected(this.mg, this._owner) ||
+        isRespawnProtected(this.mg, targetPlayer))
+    ) {
+      this.retreat();
       return;
     }
 
