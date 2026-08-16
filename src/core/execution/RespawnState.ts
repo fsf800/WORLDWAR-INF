@@ -1,4 +1,11 @@
-import { Alliance, Game, Player, PlayerType, Tick } from "../game/Game";
+import {
+  Alliance,
+  Game,
+  Player,
+  PlayerType,
+  Structures,
+  Tick,
+} from "../game/Game";
 
 // OpenFront runs at 10 simulation ticks per second.
 export const RESPAWN_WAR_PROTECTION_TICKS = 5 * 60 * 10;
@@ -8,6 +15,7 @@ export interface RespawnSnapshot {
   tiles: number;
   gold: bigint;
   troops: number;
+  structures: number;
   tick: Tick;
 }
 
@@ -23,6 +31,7 @@ export function captureRespawnSnapshot(game: Game, player: Player): void {
     tiles: player.numTilesOwned(),
     gold: player.gold(),
     troops: player.troops(),
+    structures: player.units(Structures.types).length,
     tick: game.ticks(),
   });
 }
