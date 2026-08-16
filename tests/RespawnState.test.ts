@@ -1,10 +1,4 @@
 import {
-  Alliance,
-  Game,
-  Player,
-  PlayerType,
-} from "../src/core/game/Game";
-import {
   canBreakRespawnAlliance,
   captureRespawnSnapshot,
   getRespawnSnapshot,
@@ -14,6 +8,7 @@ import {
   RESPAWN_WAR_PROTECTION_TICKS,
   startRespawnProtection,
 } from "../src/core/execution/RespawnState";
+import { Alliance, Game, Player, PlayerType } from "../src/core/game/Game";
 
 function fakePlayer(id: string): Player {
   return {

@@ -34,9 +34,7 @@ export class BreakAllianceExecution implements Execution {
     const alliance = this.requestor.allianceWith(this.recipient);
     if (alliance === null) {
       console.warn("cant break alliance, not allied");
-    } else if (
-      !canBreakRespawnAlliance(this.mg, alliance, this.requestor)
-    ) {
+    } else if (!canBreakRespawnAlliance(this.mg, alliance, this.requestor)) {
       console.warn("cannot break respawn alliance while donor lock is active");
     } else {
       this.requestor.breakAlliance(alliance);

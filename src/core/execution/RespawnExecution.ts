@@ -1,10 +1,4 @@
-import {
-  Execution,
-  Game,
-  Player,
-  PlayerType,
-  Structures,
-} from "../game/Game";
+import { Execution, Game, Player, PlayerType, Structures } from "../game/Game";
 import { TileRef } from "../game/GameMap";
 import { simpleHash } from "../Util";
 import { PlayerExecution } from "./PlayerExecution";
@@ -44,7 +38,10 @@ function goldScale(value: bigint): number {
 
 function similarityScore(snapshot: RespawnSnapshot, candidate: Player): number {
   const territory = relativeDelta(candidate.numTilesOwned(), snapshot.tiles);
-  const gold = relativeDelta(goldScale(candidate.gold()), goldScale(snapshot.gold));
+  const gold = relativeDelta(
+    goldScale(candidate.gold()),
+    goldScale(snapshot.gold),
+  );
   const troops = relativeDelta(candidate.troops(), snapshot.troops);
   const structures = relativeDelta(
     candidate.units(Structures.types).length,
@@ -96,7 +93,9 @@ export class RespawnExecution implements Execution {
 
     const carved = this.carveCoastalCountry(targetTiles);
     if (carved === null) {
-      console.warn(`cannot respawn ${this.player.name()}: no coastal territory`);
+      console.warn(
+        `cannot respawn ${this.player.name()}: no coastal territory`,
+      );
       this.active = false;
       return;
     }
@@ -214,9 +213,13 @@ export class RespawnExecution implements Execution {
     const donors = preferred.length > 0 ? preferred : peaceful;
     if (donors.length === 0) return null;
 
-    const start = Math.abs(simpleHash(`${this.player.id()}:${this.mg.ticks()}`));
+    const start = Math.abs(
+      simpleHash(`${this.player.id()}:${this.mg.ticks()}`),
+    );
     const ordered = [...donors].sort((a, b) => a.id().localeCompare(b.id()));
-    const rotated = ordered.map((_, i) => ordered[(start + i) % ordered.length]);
+    const rotated = ordered.map(
+      (_, i) => ordered[(start + i) % ordered.length],
+    );
 
     let fallback: { donor: Player; tiles: TileRef[] } | null = null;
     for (const donor of rotated) {
