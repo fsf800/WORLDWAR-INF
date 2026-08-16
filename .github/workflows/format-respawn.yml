@@ -1,0 +1,43 @@
+name: Format respawn feature
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.head_commit.message == 'Temporarily format respawn feature with repo prettier'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Format changed respawn files
+        run: >-
+          npx prettier --write
+          src/core/execution/RespawnState.ts
+          src/core/execution/RespawnExecution.ts
+          src/core/execution/PlayerExecution.ts
+          src/core/execution/AttackExecution.ts
+          src/core/execution/ConstructionExecution.ts
+          src/core/execution/ExecutionManager.ts
+          src/core/execution/alliance/BreakAllianceExecution.ts
+          src/client/hud/layers/RespawnOverlay.ts
+          src/client/hud/layers/ImmunityTimer.ts
+          tests/RespawnState.test.ts
+      - name: Commit formatted files and remove helper workflow
+        run: |
+          rm .github/workflows/format-respawn.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Format respawn feature"
+          git push origin HEAD:main
