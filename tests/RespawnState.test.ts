@@ -5,9 +5,9 @@ import {
   getRespawnSnapshot,
   isRespawnProtected,
   lockRespawnAllianceForBreaker,
-  respawnProtectionTicksRemaining,
   RESPAWN_ALLIANCE_LOCK_TICKS,
   RESPAWN_WAR_PROTECTION_TICKS,
+  respawnProtectionTicksRemaining,
   startRespawnProtection,
 } from "../src/core/execution/RespawnState";
 import { Alliance, Game, Player, PlayerType } from "../src/core/game/Game";
