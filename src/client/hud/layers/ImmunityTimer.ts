@@ -4,6 +4,7 @@ import { EventBus, GameEvent } from "../../../core/EventBus";
 import { GameMode } from "../../../core/game/Game";
 import { Controller } from "../../Controller";
 import { GameView } from "../../view";
+import { RespawnOverlay } from "./RespawnOverlay";
 
 export class ImmunityBarVisibleEvent implements GameEvent {
   constructor(public readonly visible: boolean) {}
@@ -18,6 +19,7 @@ export class ImmunityTimer extends LitElement implements Controller {
   private _barVisible = false;
   private isActive = false;
   private progressRatio = 0;
+  private respawnOverlay: RespawnOverlay | null = null;
 
   createRenderRoot() {
     this.style.position = "fixed";
@@ -32,9 +34,13 @@ export class ImmunityTimer extends LitElement implements Controller {
 
   init() {
     this.isVisible = true;
+    this.respawnOverlay = new RespawnOverlay(this.game, this.eventBus);
+    this.respawnOverlay.init();
   }
 
   tick() {
+    this.respawnOverlay?.tick();
+
     if (!this.game || !this.isVisible) {
       return;
     }
