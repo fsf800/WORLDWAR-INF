@@ -1,0 +1,128 @@
+name: Harden respawn peace
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Temporarily harden respawn peace enforcement'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Apply naval and nuclear respawn peace guards
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"expected block not found in {path}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace(
+              "src/core/execution/WarshipExecution.ts",
+              'import { findMinimumBy } from "../Util";\nimport { ShellExecution } from "./ShellExecution";',
+              'import { findMinimumBy } from "../Util";\nimport { isRespawnProtected } from "./RespawnState";\nimport { ShellExecution } from "./ShellExecution";',
+          )
+          replace(
+              "src/core/execution/WarshipExecution.ts",
+              '    const owner = this.warship.owner();\n\n    const ships = mg.nearbyUnits(',
+              '    const owner = this.warship.owner();\n\n    if (isRespawnProtected(mg, owner)) {\n      return undefined;\n    }\n\n    const ships = mg.nearbyUnits(',
+          )
+          replace(
+              "src/core/execution/WarshipExecution.ts",
+              '        unit.owner() === owner ||\n        !owner.canAttackPlayer(unit.owner(), true) ||',
+              '        unit.owner() === owner ||\n        isRespawnProtected(mg, unit.owner()) ||\n        !owner.canAttackPlayer(unit.owner(), true) ||',
+          )
+
+          replace(
+              "src/core/execution/ShellExecution.ts",
+              'import { PseudoRandom } from "../PseudoRandom";\n',
+              'import { PseudoRandom } from "../PseudoRandom";\nimport { isRespawnProtected } from "./RespawnState";\n',
+          )
+          replace(
+              "src/core/execution/ShellExecution.ts",
+              '      !this.target.isActive() ||\n      this.target.owner() === this.shell.owner() ||',
+              '      !this.target.isActive() ||\n      isRespawnProtected(this.mg, this._owner) ||\n      isRespawnProtected(this.mg, this.target.owner()) ||\n      this.target.owner() === this.shell.owner() ||',
+          )
+
+          replace(
+              "src/core/execution/NukeExecution.ts",
+              'import { listNukeBreakAlliance } from "./Util";\n',
+              'import { isRespawnProtected } from "./RespawnState";\nimport { listNukeBreakAlliance } from "./Util";\n',
+          )
+          replace(
+              "src/core/execution/NukeExecution.ts",
+              '  public target(): Player | TerraNullius {\n    return this.mg.owner(this.dst);\n  }\n\n  private tilesToDestroy(): Set<TileRef> {',
+              '''  public target(): Player | TerraNullius {
+    return this.mg.owner(this.dst);
+  }
+
+  private violatesRespawnProtection(): boolean {
+    if (isRespawnProtected(this.mg, this.player)) {
+      return true;
+    }
+
+    // Reject a strike if its maximum blast circle overlaps any protected
+    // player's territory. This intentionally errs on the safe side so a player
+    // cannot bypass the five-minute peace by aiming one tile beside the border.
+    const magnitude = this.mg.config().nukeMagnitudes(this.nukeType);
+    const outer2 = magnitude.outer * magnitude.outer;
+    const cx = this.mg.x(this.dst);
+    const cy = this.mg.y(this.dst);
+    const x0 = Math.max(0, cx - magnitude.outer);
+    const y0 = Math.max(0, cy - magnitude.outer);
+    const x1 = Math.min(this.mg.width() - 1, cx + magnitude.outer);
+    const y1 = Math.min(this.mg.height() - 1, cy + magnitude.outer);
+
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const tile = this.mg.ref(x, y);
+        if (this.mg.euclideanDistSquared(this.dst, tile) > outer2) continue;
+        const owner = this.mg.owner(tile);
+        if (
+          owner.isPlayer() &&
+          owner !== this.player &&
+          isRespawnProtected(this.mg, owner)
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private tilesToDestroy(): Set<TileRef> {''',
+          )
+          replace(
+              "src/core/execution/NukeExecution.ts",
+              '  tick(ticks: number): void {\n    if (this.nuke === null) {\n      const spawn = this.player.canBuild(this.nukeType, this.dst);',
+              '  tick(ticks: number): void {\n    if (this.nuke === null) {\n      if (this.violatesRespawnProtection()) {\n        this.active = false;\n        return;\n      }\n      const spawn = this.player.canBuild(this.nukeType, this.dst);',
+          )
+      - name: Format patched files
+        run: >-
+          npx prettier --write
+          src/core/execution/WarshipExecution.ts
+          src/core/execution/ShellExecution.ts
+          src/core/execution/NukeExecution.ts
+      - name: Commit hardening and remove helper workflow
+        run: |
+          rm .github/workflows/harden-respawn-peace.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Harden respawn peace across naval and nuclear combat"
+          git push origin HEAD:main
