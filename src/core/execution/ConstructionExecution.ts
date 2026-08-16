@@ -7,6 +7,7 @@ import { MirvExecution } from "./MIRVExecution";
 import { MissileSiloExecution } from "./MissileSiloExecution";
 import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
+import { isRespawnProtected } from "./RespawnState";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
 import { WarshipExecution } from "./WarshipExecution";
 
@@ -49,6 +50,10 @@ export class ConstructionExecution implements Execution {
       // For non-structure units (nukes/warship), charge once and delegate to specialized executions.
       const isStructure = this.isStructure(this.constructionType);
       if (!isStructure) {
+        if (this.isNuclearAttackBlockedByRespawnPeace()) {
+          this.active = false;
+          return;
+        }
         // Defer validation and gold deduction to the specific execution
         this.completeConstruction();
         this.active = false;
@@ -95,6 +100,24 @@ export class ConstructionExecution implements Execution {
       return;
     }
     this.ticksUntilComplete--;
+  }
+
+  private isNuclearAttackBlockedByRespawnPeace(): boolean {
+    if (
+      this.constructionType !== UnitType.AtomBomb &&
+      this.constructionType !== UnitType.HydrogenBomb &&
+      this.constructionType !== UnitType.MIRV
+    ) {
+      return false;
+    }
+    if (isRespawnProtected(this.mg, this.player)) {
+      return true;
+    }
+    if (!this.mg.hasOwner(this.tile)) {
+      return false;
+    }
+    const target = this.mg.owner(this.tile);
+    return target.isPlayer() && isRespawnProtected(this.mg, target);
   }
 
   private completeConstruction() {
