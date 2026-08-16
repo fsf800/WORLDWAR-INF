@@ -5,6 +5,7 @@ import {
   getRespawnSnapshot,
   isRespawnProtected,
   lockRespawnAllianceForBreaker,
+  respawnProtectionTicksRemaining,
   RESPAWN_ALLIANCE_LOCK_TICKS,
   RESPAWN_WAR_PROTECTION_TICKS,
   startRespawnProtection,
@@ -49,12 +50,15 @@ describe("RespawnState", () => {
     expect(RESPAWN_WAR_PROTECTION_TICKS).toBe(3000);
     startRespawnProtection(game, player);
     expect(isRespawnProtected(game, player)).toBe(true);
+    expect(respawnProtectionTicksRemaining(game, player)).toBe(3000);
 
     tick = 100 + RESPAWN_WAR_PROTECTION_TICKS - 1;
     expect(isRespawnProtected(game, player)).toBe(true);
+    expect(respawnProtectionTicksRemaining(game, player)).toBe(1);
 
     tick = 100 + RESPAWN_WAR_PROTECTION_TICKS;
     expect(isRespawnProtected(game, player)).toBe(false);
+    expect(respawnProtectionTicksRemaining(game, player)).toBe(0);
   });
 
   test("ten minute forced alliance lock is directional", () => {
